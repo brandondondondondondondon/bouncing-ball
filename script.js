@@ -151,14 +151,54 @@ function updateBall(ball) {
   }
 }
 
+function handleBallCollisions() {
+  for (let i = 0; i < balls.length; i++) {
+    for (let j = i + 1; j < balls.length; j++) {
+      const a = balls[i];
+      const b = balls[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < BALL_RADIUS * 2) {
+        // Simple elastic collision
+        // Normalize
+        const nx = dx / dist;
+        const ny = dy / dist;
+        // Relative velocity
+        const dvx = b.vx - a.vx;
+        const dvy = b.vy - a.vy;
+        // Velocity along normal
+        const vn = dvx * nx + dvy * ny;
+        if (vn < 0) {
+          // Exchange velocity along normal
+          const impulse = (2 * vn) / 2; // mass = 1 for both
+          a.vx += impulse * nx;
+          a.vy += impulse * ny;
+          b.vx -= impulse * nx;
+          b.vy -= impulse * ny;
+        }
+        // Separate balls
+        const overlap = BALL_RADIUS * 2 - dist;
+        a.x -= nx * overlap / 2;
+        a.y -= ny * overlap / 2;
+        b.x += nx * overlap / 2;
+        b.y += ny * overlap / 2;
+      }
+    }
+  }
+}
+
 function animate() {
   if (!running || paused) return;
   ctx.fillStyle = 'rgba(34,34,34,0.15)';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   for (const ball of balls) {
     drawBall(ball);
+  }
+  for (const ball of balls) {
     updateBall(ball);
   }
+  handleBallCollisions();
   animationId = requestAnimationFrame(animate);
 }
 
