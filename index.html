@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bouncing Ball Animation</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="controls">
+    <label>Ball X: <input type="number" id="ball-x" value="100" min="0" max="600"></label>
+    <label>Ball Y: <input type="number" id="ball-y" value="100" min="0" max="400"></label>
+    <label>Velocity X: <input type="number" id="vel-x" value="2"></label>
+    <label>Velocity Y: <input type="number" id="vel-y" value="2"></label>
+    <button id="start-btn">Start</button>
+  </div>
+  <canvas id="scene" width="600" height="400"></canvas>
+  <script src="script.js"></script>
+</body>
+</html>
