@@ -1,6 +1,8 @@
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('start-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const resetBtn = document.getElementById('reset-btn');
 
 const xInput = document.getElementById('ball-x');
 const yInput = document.getElementById('ball-y');
@@ -13,11 +15,13 @@ const HEIGHT = canvas.height;
 const GRAVITY = 0.25;
 const DAMPING = 0.8;
 
-let ball = { x: 100, y: 100, vx: 2, vy: 2 };
+let initialState = { x: 100, y: 100, vx: 2, vy: 2 };
+let ball = { ...initialState };
 let running = false;
+let paused = false;
+let animationId = null;
 
 function drawBall() {
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
   ctx.fillStyle = '#ff5252';
@@ -55,10 +59,13 @@ function updateBall() {
 }
 
 function animate() {
-  if (!running) return;
-  updateBall();
+  if (!running || paused) return;
+  // Trail effect: draw a semi-transparent rectangle over the canvas
+  ctx.fillStyle = 'rgba(34,34,34,0.2)';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
   drawBall();
-  requestAnimationFrame(animate);
+  updateBall();
+  animationId = requestAnimationFrame(animate);
 }
 
 startBtn.addEventListener('click', () => {
@@ -66,8 +73,33 @@ startBtn.addEventListener('click', () => {
   ball.y = parseFloat(yInput.value);
   ball.vx = parseFloat(vxInput.value);
   ball.vy = parseFloat(vyInput.value);
+  initialState = { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy };
   running = true;
+  paused = false;
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
   animate();
 });
 
+pauseBtn.addEventListener('click', () => {
+  if (!running) return;
+  paused = !paused;
+  pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  if (!paused) {
+    animate();
+  } else {
+    cancelAnimationFrame(animationId);
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  running = false;
+  paused = false;
+  pauseBtn.textContent = 'Pause';
+  ball = { ...initialState };
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  drawBall();
+});
+
+// Draw initial ball
+ctx.clearRect(0, 0, WIDTH, HEIGHT);
 drawBall();
