@@ -202,6 +202,13 @@ function animate() {
   animationId = requestAnimationFrame(animate);
 }
 
+function drawAllBalls() {
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  for (const ball of balls) {
+    drawBall(ball);
+  }
+}
+
 addBallBtn.addEventListener('click', () => {
   const x = parseFloat(xInput.value);
   const y = parseFloat(yInput.value);
