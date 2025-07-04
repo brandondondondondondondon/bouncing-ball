@@ -10,13 +10,16 @@ const yInput = document.getElementById('ball-y');
 const vxInput = document.getElementById('vel-x');
 const vyInput = document.getElementById('vel-y');
 const colorInput = document.getElementById('ball-color');
+const sizeInput = document.getElementById('ball-size');
+const elasticityInput = document.getElementById('ball-elasticity');
+const massInput = document.getElementById('ball-mass');
 
 const BALL_RADIUS = 20;
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const GRAVITY = 0.25;
 const DAMPING = 0.8;
-const TRAIL_LENGTH = 40; // Number of trail points to keep
+let TRAIL_LENGTH = 80; // Longer trail
 const TRAIL_WIDTH = 6; // Skinnier trail
 
 const ballListContainer = document.getElementById('ball-list-container');
@@ -26,14 +29,17 @@ function randomColor() {
   return `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
 }
 
-function createBall(x, y, vx, vy, color) {
+function createBall(x, y, vx, vy, color, size, elasticity, mass) {
   return {
     x, y, vx, vy, color,
+    size: size || 20,
+    elasticity: elasticity !== undefined ? elasticity : 0.8,
+    mass: mass !== undefined ? mass : 1,
     trail: [] // Array of {x, y, alpha}
   };
 }
 
-let balls = [createBall(100, 100, 2, 2, '#ff5252')];
+let balls = [createBall(100, 100, 2, 2, '#ff5252', 20, 0.8, 1)];
 let initialBalls = JSON.parse(JSON.stringify(balls));
 let running = false;
 let paused = false;
@@ -51,6 +57,9 @@ function updateBallListUI() {
       <td>${ball.vx}</td>
       <td>${ball.vy}</td>
       <td><span style="display:inline-block;width:20px;height:20px;background:${ball.color};border-radius:50%;border:1px solid #ccc;"></span></td>
+      <td>${ball.size}</td>
+      <td>${ball.elasticity}</td>
+      <td>${ball.mass}</td>
       <td>
         <button class="edit-btn" data-idx="${i}">Edit</button>
         <button class="remove-btn" data-idx="${i}">Remove</button>
@@ -80,6 +89,9 @@ function editBall(idx) {
   vxInput.value = ball.vx;
   vyInput.value = ball.vy;
   colorInput.value = ball.color;
+  sizeInput.value = ball.size;
+  elasticityInput.value = ball.elasticity;
+  massInput.value = ball.mass;
   editingIndex = idx;
   addBallBtn.textContent = 'Update Ball';
 }
@@ -107,7 +119,7 @@ function drawBall(ball) {
   ctx.save();
   ctx.globalAlpha = 1.0;
   ctx.beginPath();
-  ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+  ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
   ctx.fillStyle = ball.color;
   ctx.fill();
   ctx.strokeStyle = '#fff';
@@ -122,24 +134,24 @@ function updateBall(ball) {
   ball.y += ball.vy;
 
   // Bounce off floor
-  if (ball.y + BALL_RADIUS > HEIGHT) {
-    ball.y = HEIGHT - BALL_RADIUS;
-    ball.vy *= -DAMPING;
+  if (ball.y + ball.size > HEIGHT) {
+    ball.y = HEIGHT - ball.size;
+    ball.vy *= -ball.elasticity;
   }
   // Bounce off ceiling
-  if (ball.y - BALL_RADIUS < 0) {
-    ball.y = BALL_RADIUS;
-    ball.vy *= -DAMPING;
+  if (ball.y - ball.size < 0) {
+    ball.y = ball.size;
+    ball.vy *= -ball.elasticity;
   }
   // Bounce off right wall
-  if (ball.x + BALL_RADIUS > WIDTH) {
-    ball.x = WIDTH - BALL_RADIUS;
-    ball.vx *= -DAMPING;
+  if (ball.x + ball.size > WIDTH) {
+    ball.x = WIDTH - ball.size;
+    ball.vx *= -ball.elasticity;
   }
   // Bounce off left wall
-  if (ball.x - BALL_RADIUS < 0) {
-    ball.x = BALL_RADIUS;
-    ball.vx *= -DAMPING;
+  if (ball.x - ball.size < 0) {
+    ball.x = ball.size;
+    ball.vx *= -ball.elasticity;
   }
 
   // Add to trail
@@ -159,30 +171,28 @@ function handleBallCollisions() {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < BALL_RADIUS * 2) {
-        // Simple elastic collision
-        // Normalize
+      if (dist < a.size + b.size) {
+        // Elastic collision with mass
         const nx = dx / dist;
         const ny = dy / dist;
-        // Relative velocity
         const dvx = b.vx - a.vx;
         const dvy = b.vy - a.vy;
-        // Velocity along normal
         const vn = dvx * nx + dvy * ny;
         if (vn < 0) {
-          // Exchange velocity along normal
-          const impulse = (2 * vn) / 2; // mass = 1 for both
-          a.vx += impulse * nx;
-          a.vy += impulse * ny;
-          b.vx -= impulse * nx;
-          b.vy -= impulse * ny;
+          // Calculate impulse with both masses and average elasticity
+          const e = (a.elasticity + b.elasticity) / 2;
+          const impulse = (-(1 + e) * vn) / (1 / a.mass + 1 / b.mass);
+          a.vx -= (impulse * nx) / a.mass;
+          a.vy -= (impulse * ny) / a.mass;
+          b.vx += (impulse * nx) / b.mass;
+          b.vy += (impulse * ny) / b.mass;
         }
         // Separate balls
-        const overlap = BALL_RADIUS * 2 - dist;
-        a.x -= nx * overlap / 2;
-        a.y -= ny * overlap / 2;
-        b.x += nx * overlap / 2;
-        b.y += ny * overlap / 2;
+        const overlap = a.size + b.size - dist;
+        a.x -= nx * overlap * (b.mass / (a.mass + b.mass));
+        a.y -= ny * overlap * (b.mass / (a.mass + b.mass));
+        b.x += nx * overlap * (a.mass / (a.mass + b.mass));
+        b.y += ny * overlap * (a.mass / (a.mass + b.mass));
       }
     }
   }
@@ -209,19 +219,50 @@ function drawAllBalls() {
   }
 }
 
+function randomInRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function getRandomBallProps() {
+  // Reasonable bounds
+  const size = randomInRange(12, 36); // 12-36 px
+  const elasticity = randomInRange(0.5, 0.95); // 0.5-0.95
+  const mass = randomInRange(0.5, 1.5); // 0.5-1.5
+  return { size, elasticity, mass };
+}
+
 addBallBtn.addEventListener('click', () => {
   const x = parseFloat(xInput.value);
   const y = parseFloat(yInput.value);
   const vx = parseFloat(vxInput.value);
   const vy = parseFloat(vyInput.value);
   const color = colorInput.value || randomColor();
+  let size = parseFloat(sizeInput.value);
+  let elasticity = parseFloat(elasticityInput.value);
+  let mass = parseFloat(massInput.value);
+
+  // If user hasn't changed the default values, randomize them
+  if (
+    sizeInput.value == 20 &&
+    elasticityInput.value == 0.8 &&
+    massInput.value == 1 &&
+    editingIndex === null
+  ) {
+    const rand = getRandomBallProps();
+    size = rand.size;
+    elasticity = rand.elasticity;
+    mass = rand.mass;
+    sizeInput.value = size.toFixed(1);
+    elasticityInput.value = elasticity.toFixed(2);
+    massInput.value = mass.toFixed(2);
+  }
+
   if (editingIndex !== null) {
-    // Update existing ball
-    balls[editingIndex] = createBall(x, y, vx, vy, color);
+    balls[editingIndex] = createBall(x, y, vx, vy, color, size, elasticity, mass);
     editingIndex = null;
     addBallBtn.textContent = 'Add Ball';
   } else {
-    balls.push(createBall(x, y, vx, vy, color));
+    balls.push(createBall(x, y, vx, vy, color, size, elasticity, mass));
   }
   initialBalls = JSON.parse(JSON.stringify(balls));
   updateBallListUI();
@@ -232,6 +273,9 @@ addBallBtn.addEventListener('click', () => {
   vxInput.value = 2;
   vyInput.value = 2;
   colorInput.value = '#ff5252';
+  sizeInput.value = 20;
+  elasticityInput.value = 0.8;
+  massInput.value = 1;
 });
 
 startBtn.addEventListener('click', () => {
