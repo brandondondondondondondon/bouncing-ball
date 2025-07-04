@@ -1,5 +1,7 @@
 # Bouncing Ball Animation
 
+[Live Demo on GitHub Pages](https://brandondondondondondondon.github.io/bouncing-ball/)
+
 A simple HTML/JS project to animate a bouncing ball. You can set the ball's position and velocity, then click Start to watch the scene play out. Designed for easy deployment on GitHub Pages.
 
 ## Features
