@@ -19,6 +19,9 @@ const DAMPING = 0.8;
 const TRAIL_LENGTH = 40; // Number of trail points to keep
 const TRAIL_WIDTH = 6; // Skinnier trail
 
+const ballListContainer = document.getElementById('ball-list-container');
+const ballListTable = document.getElementById('ball-list').getElementsByTagName('tbody')[0];
+
 function randomColor() {
   return `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
 }
@@ -35,6 +38,58 @@ let initialBalls = JSON.parse(JSON.stringify(balls));
 let running = false;
 let paused = false;
 let animationId = null;
+let editingIndex = null;
+
+function updateBallListUI() {
+  ballListTable.innerHTML = '';
+  balls.forEach((ball, i) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${Math.round(ball.x)}</td>
+      <td>${Math.round(ball.y)}</td>
+      <td>${ball.vx}</td>
+      <td>${ball.vy}</td>
+      <td><span style="display:inline-block;width:20px;height:20px;background:${ball.color};border-radius:50%;border:1px solid #ccc;"></span></td>
+      <td>
+        <button class="edit-btn" data-idx="${i}">Edit</button>
+        <button class="remove-btn" data-idx="${i}">Remove</button>
+      </td>
+    `;
+    ballListTable.appendChild(row);
+  });
+  // Add event listeners for edit/remove
+  ballListTable.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.getAttribute('data-idx'));
+      editBall(idx);
+    });
+  });
+  ballListTable.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.getAttribute('data-idx'));
+      removeBall(idx);
+    });
+  });
+}
+
+function editBall(idx) {
+  const ball = balls[idx];
+  xInput.value = ball.x;
+  yInput.value = ball.y;
+  vxInput.value = ball.vx;
+  vyInput.value = ball.vy;
+  colorInput.value = ball.color;
+  editingIndex = idx;
+  addBallBtn.textContent = 'Update Ball';
+}
+
+function removeBall(idx) {
+  balls.splice(idx, 1);
+  initialBalls = JSON.parse(JSON.stringify(balls));
+  updateBallListUI();
+  drawAllBalls();
+}
 
 function drawBall(ball) {
   // Draw trail
@@ -113,17 +168,24 @@ addBallBtn.addEventListener('click', () => {
   const vx = parseFloat(vxInput.value);
   const vy = parseFloat(vyInput.value);
   const color = colorInput.value || randomColor();
-  balls.push(createBall(x, y, vx, vy, color));
-  initialBalls = JSON.parse(JSON.stringify(balls));
-  drawAllBalls();
-});
-
-function drawAllBalls() {
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  for (const ball of balls) {
-    drawBall(ball);
+  if (editingIndex !== null) {
+    // Update existing ball
+    balls[editingIndex] = createBall(x, y, vx, vy, color);
+    editingIndex = null;
+    addBallBtn.textContent = 'Add Ball';
+  } else {
+    balls.push(createBall(x, y, vx, vy, color));
   }
-}
+  initialBalls = JSON.parse(JSON.stringify(balls));
+  updateBallListUI();
+  drawAllBalls();
+  // Reset form
+  xInput.value = 100;
+  yInput.value = 100;
+  vxInput.value = 2;
+  vyInput.value = 2;
+  colorInput.value = '#ff5252';
+});
 
 startBtn.addEventListener('click', () => {
   // Reset all trails
@@ -149,9 +211,11 @@ resetBtn.addEventListener('click', () => {
   running = false;
   paused = false;
   pauseBtn.textContent = 'Pause';
-  // Deep copy initial balls
   balls = JSON.parse(JSON.stringify(initialBalls));
   for (const ball of balls) ball.trail = [];
+  editingIndex = null;
+  addBallBtn.textContent = 'Add Ball';
+  updateBallListUI();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawAllBalls();
 });
@@ -159,3 +223,4 @@ resetBtn.addEventListener('click', () => {
 // Draw initial state
 ctx.clearRect(0, 0, WIDTH, HEIGHT);
 drawAllBalls();
+updateBallListUI();

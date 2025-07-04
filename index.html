@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <canvas id="scene" width="600" height="400"></canvas>
   <div class="controls">
     <label>Ball X: <input type="number" id="ball-x" value="100" min="0" max="600"></label>
     <label>Ball Y: <input type="number" id="ball-y" value="100" min="0" max="400"></label>
@@ -18,7 +19,17 @@
     <button id="pause-btn">Pause</button>
     <button id="reset-btn">Reset</button>
   </div>
-  <canvas id="scene" width="600" height="400"></canvas>
+  <div id="ball-list-container">
+    <h3>Current Balls</h3>
+    <table id="ball-list">
+      <thead>
+        <tr><th>#</th><th>X</th><th>Y</th><th>VX</th><th>VY</th><th>Color</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <!-- Ball rows will be dynamically inserted here -->
+      </tbody>
+    </table>
+  </div>
   <script src="script.js"></script>
 </body>
 </html>
