@@ -236,7 +236,7 @@ addBallBtn.addEventListener('click', () => {
   const y = parseFloat(yInput.value);
   const vx = parseFloat(vxInput.value);
   const vy = parseFloat(vyInput.value);
-  const color = colorInput.value || randomColor();
+  let color = colorInput.value;
   let size = parseFloat(sizeInput.value);
   let elasticity = parseFloat(elasticityInput.value);
   let mass = parseFloat(massInput.value);
@@ -246,15 +246,18 @@ addBallBtn.addEventListener('click', () => {
     sizeInput.value == 20 &&
     elasticityInput.value == 0.8 &&
     massInput.value == 1 &&
+    colorInput.value == '#ff5252' &&
     editingIndex === null
   ) {
     const rand = getRandomBallProps();
     size = rand.size;
     elasticity = rand.elasticity;
     mass = rand.mass;
+    color = randomColor();
     sizeInput.value = size.toFixed(1);
     elasticityInput.value = elasticity.toFixed(2);
     massInput.value = mass.toFixed(2);
+    colorInput.value = color;
   }
 
   if (editingIndex !== null) {
@@ -276,6 +279,14 @@ addBallBtn.addEventListener('click', () => {
   sizeInput.value = 20;
   elasticityInput.value = 0.8;
   massInput.value = 1;
+});
+
+canvas.addEventListener('click', () => {
+  // Shake all balls: add a random velocity boost
+  for (const ball of balls) {
+    ball.vx += randomInRange(-5, 5);
+    ball.vy += randomInRange(-5, 5);
+  }
 });
 
 startBtn.addEventListener('click', () => {
@@ -315,3 +326,19 @@ resetBtn.addEventListener('click', () => {
 ctx.clearRect(0, 0, WIDTH, HEIGHT);
 drawAllBalls();
 updateBallListUI();
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'a' || e.key === 'A') {
+    // Add a random ball
+    const x = randomInRange(40, WIDTH - 40);
+    const y = randomInRange(40, HEIGHT - 40);
+    const vx = randomInRange(-4, 4);
+    const vy = randomInRange(-4, 4);
+    const color = randomColor();
+    const rand = getRandomBallProps();
+    balls.push(createBall(x, y, vx, vy, color, rand.size, rand.elasticity, rand.mass));
+    initialBalls = JSON.parse(JSON.stringify(balls));
+    updateBallListUI();
+    drawAllBalls();
+  }
+});
